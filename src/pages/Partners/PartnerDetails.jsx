@@ -1,14 +1,53 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { FileText, Landmark, MapPin, Wallet } from "lucide-react";
-import Button from "../../components/Button";
-import StatusBadge from "../../components/StatusBadge";
 import partnersData from "../../data/partners";
 import propertiesData from "../../data/properties";
-import bookingsData from "../../data/bookings";
 import { paymentTransactions } from "../../data/payments";
 
-const tabs = ["Overview", "Properties", "Bookings", "Payments", "Documents"];
+function Button({ children, variant = "primary", className = "", ...props }) {
+  const variants = {
+    primary: "bg-[#075d59] text-white hover:bg-[#064b48]",
+    secondary: "bg-white text-[#075d59] border border-gray-200 hover:bg-gray-50",
+    danger: "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100",
+    success: "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100",
+    ghost: "bg-transparent text-gray-600 hover:bg-gray-100",
+  };
+
+  return (
+    <button
+      {...props}
+      className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${variants[variant] || variants.primary} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatusBadge({ status }) {
+  const styles = {
+    Active: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Pending: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    Suspended: "bg-red-50 text-red-700 border-red-100",
+    Rejected: "bg-gray-100 text-gray-700 border-gray-200",
+    Confirmed: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Completed: "bg-blue-50 text-blue-700 border-blue-100",
+    Cancelled: "bg-red-50 text-red-700 border-red-100",
+    Paid: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Failed: "bg-red-50 text-red-700 border-red-100",
+    Processing: "bg-orange-50 text-orange-700 border-orange-100",
+    Verified: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Unverified: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${styles[status] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
+      {status}
+    </span>
+  );
+}
+
+const tabs = ["Overview", "Properties", "Payments", "Documents"];
 
 function PartnerDetails() {
   const { id } = useParams();
@@ -17,11 +56,6 @@ function PartnerDetails() {
 
   const partnerProperties = useMemo(
     () => propertiesData.filter((item) => item.partner === partner.company),
-    [partner.company],
-  );
-
-  const partnerBookings = useMemo(
-    () => bookingsData.filter((item) => item.partner === partner.company),
     [partner.company],
   );
 
@@ -65,7 +99,6 @@ function PartnerDetails() {
       <div className="grid gap-4 md:grid-cols-4">
         {[
           ["Total Properties", partnerProperties.length],
-          ["Total Bookings", partnerBookings.length],
           ["Total Revenue", partner.revenue],
           ["Commission", "₹3.6L"],
         ].map(([label, value]) => (
@@ -144,30 +177,13 @@ function PartnerDetails() {
           </div>
         )}
 
-        {activeTab === "Bookings" && (
-          <div className="space-y-3">
-            {partnerBookings.map((booking) => (
-              <div key={booking.id} className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div>
-                  <h4 className="font-semibold text-gray-800">{booking.id}</h4>
-                  <p className="text-sm text-gray-500">{booking.customer} • {booking.checkIn} to {booking.checkOut}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-800">{booking.amount}</p>
-                  <StatusBadge status={booking.bookingStatus} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {activeTab === "Payments" && (
           <div className="space-y-3">
             {partnerPayments.map((item) => (
               <div key={item.id} className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <div>
                   <h4 className="font-semibold text-gray-800">{item.id}</h4>
-                  <p className="text-sm text-gray-500">{item.bookingId} • {item.paymentMethod}</p>
+                  <p className="text-sm text-gray-500">{item.paymentMethod}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-gray-800">{item.amount}</p>

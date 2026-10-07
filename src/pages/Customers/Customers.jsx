@@ -1,10 +1,86 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, ShieldCheck, UserX } from "lucide-react";
-import PageHeader from "../../components/PageHeader";
-import SearchInput from "../../components/SearchInput";
-import StatusBadge from "../../components/StatusBadge";
 import customersData from "../../data/customers";
+
+function Button({ children, variant = "primary", className = "", ...props }) {
+  const variants = {
+    primary: "bg-[#075d59] text-white hover:bg-[#064b48]",
+    secondary: "bg-white text-[#075d59] border border-gray-200 hover:bg-gray-50",
+    danger: "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100",
+    success: "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100",
+    ghost: "bg-transparent text-gray-600 hover:bg-gray-100",
+  };
+
+  return (
+    <button
+      {...props}
+      className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${variants[variant] || variants.primary} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PageHeader({ title, description, actions = [] }) {
+  return (
+    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
+        {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        {actions.map((action, index) => (
+          <Button key={index} variant={action.variant || "primary"} onClick={action.onClick} className={action.className || ""}>
+            {action.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SearchInput({ value, onChange, placeholder = "Search..." }) {
+  return (
+    <div className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-gray-400">
+        <circle cx="11" cy="11" r="6" />
+        <path d="m16 16 4 4" />
+      </svg>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="ml-2 w-full bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
+      />
+    </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  const styles = {
+    Active: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Pending: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    Suspended: "bg-red-50 text-red-700 border-red-100",
+    Rejected: "bg-gray-100 text-gray-700 border-gray-200",
+    Confirmed: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Completed: "bg-blue-50 text-blue-700 border-blue-100",
+    Cancelled: "bg-red-50 text-red-700 border-red-100",
+    Paid: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Failed: "bg-red-50 text-red-700 border-red-100",
+    Processing: "bg-orange-50 text-orange-700 border-orange-100",
+    Verified: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Unverified: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${styles[status] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
+      {status}
+    </span>
+  );
+}
 
 function Customers() {
   const [query, setQuery] = useState("");
@@ -23,7 +99,7 @@ function Customers() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Customer Management" description="Manage guest records, bookings and account state." />
+      <PageHeader title="Customer Management" description="Manage guest records and account state." />
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
@@ -61,9 +137,7 @@ function Customers() {
                 <th className="px-4 py-3 font-semibold">Customer Name</th>
                 <th className="px-4 py-3 font-semibold">Email</th>
                 <th className="px-4 py-3 font-semibold">Phone</th>
-                <th className="px-4 py-3 font-semibold">Bookings</th>
                 <th className="px-4 py-3 font-semibold">Total Spent</th>
-                <th className="px-4 py-3 font-semibold">Last Booking</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Joined Date</th>
                 <th className="px-4 py-3 font-semibold">Action</th>
@@ -76,9 +150,7 @@ function Customers() {
                   <td className="px-4 py-3 font-medium text-gray-800">{customer.name}</td>
                   <td className="px-4 py-3 text-gray-600">{customer.email}</td>
                   <td className="px-4 py-3 text-gray-600">{customer.phone}</td>
-                  <td className="px-4 py-3 text-gray-600">{customer.bookings}</td>
                   <td className="px-4 py-3 font-medium text-gray-800">{customer.totalSpent}</td>
-                  <td className="px-4 py-3 text-gray-600">{customer.lastBooking}</td>
                   <td className="px-4 py-3"><StatusBadge status={customer.status} /></td>
                   <td className="px-4 py-3 text-gray-600">{customer.joinedDate}</td>
                   <td className="px-4 py-3">

@@ -8,7 +8,6 @@ import {
     AlertCircle,
     Loader2,
     Building2,
-    CalendarCheck,
     Users,
 } from "lucide-react";
 
@@ -27,7 +26,6 @@ const INITIAL_VALUES = { email: "", password: "", remember: false };
 
 const highlights = [
     { icon: Building2, text: "Add and manage your properties" },
-    { icon: CalendarCheck, text: "Track bookings and availability" },
     { icon: Users, text: "Keep guest details in one place" },
 ];
 
@@ -187,7 +185,7 @@ function Login() {
                     <h1 className="text-4xl font-bold leading-tight tracking-tight">{PANEL_NAME}</h1>
 
                     <p className="mt-4 max-w-md text-sm leading-relaxed text-white/70">
-                        Sign in to manage your properties, bookings and guests from one place.
+                        Sign in to manage your properties and guests from one place.
                     </p>
 
                     <ul className="mt-8 space-y-3">
@@ -214,7 +212,7 @@ function Login() {
                 </div>
 
                 <h1 className="mt-4 text-xl font-bold tracking-tight sm:text-2xl">{PANEL_NAME}</h1>
-                <p className="mt-1 text-sm text-white/70">Manage properties, bookings and guests</p>
+                <p className="mt-1 text-sm text-white/70">Manage properties and guests</p>
             </header>
 
             {/* ============================= */}

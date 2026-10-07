@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, Pencil, Trash2, UserCheck } from "lucide-react";
+import { Eye, Pencil, Trash2, Ban } from "lucide-react";
 
-const API_URL = "http://31.97.228.17:4478/api/admin/users";
-const APPROVE_URL = "http://31.97.228.17:4478/api/admin/approve";
+const FILTER_URL = "http://31.97.228.17:4478/api/admin/partners/filter?status=active";
 
 function getToken() {
   return sessionStorage.getItem("adminToken") || "";
 }
 
-// Helper: build safe Authorization header (avoids double "Bearer")
 function getAuthHeader() {
   const raw = getToken();
   if (!raw) return {};
@@ -33,30 +31,6 @@ function Button({ children, variant = "primary", className = "", ...props }) {
     >
       {children}
     </button>
-  );
-}
-
-function Modal({ open, onClose, title, children, size = "md" }) {
-  if (!open) return null;
-
-  const sizes = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-2xl", xl: "max-w-4xl" };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className={`w-full rounded-2xl border border-gray-200 bg-white shadow-2xl ${sizes[size]}`}>
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
   );
 }
 
@@ -126,9 +100,6 @@ function StatusBadge({ status }) {
   );
 }
 
-const statusOptions = ["All", "Active", "Pending", "Suspended", "Rejected"];
-
-// Derive UI status from API booleans
 function deriveStatus(user) {
   if (user.isBlocked) return "Suspended";
   if (user.isApproved) return "Active";
@@ -136,25 +107,14 @@ function deriveStatus(user) {
   return "Rejected";
 }
 
-function Partners({ initialStatus = "All" }) {
+function ActivePartners() {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [approvingId, setApprovingId] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    company: "",
-    businessType: "",
-  });
+  const [busyId, setBusyId] = useState(null);
 
-  // Fetch partners from API
   useEffect(() => {
     let isMounted = true;
 
@@ -164,12 +124,11 @@ function Partners({ initialStatus = "All" }) {
         setError(null);
 
         const authHeader = getAuthHeader();
-
         if (!authHeader.Authorization) {
           throw new Error("No auth token found. Please login again.");
         }
 
-        const response = await fetch(API_URL, {
+        const response = await fetch(FILTER_URL, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -185,13 +144,7 @@ function Partners({ initialStatus = "All" }) {
         }
 
         const result = await response.json();
-        const users = Array.isArray(result?.data)
-          ? result.data
-          : Array.isArray(result?.data?.users)
-            ? result.data.users
-            : Array.isArray(result?.users)
-              ? result.users
-              : [];
+        const users = Array.isArray(result?.data) ? result.data : [];
 
         const mapped = users.map((user) => {
           const nameParts = (user.name || "").trim().split(" ");
@@ -199,12 +152,15 @@ function Partners({ initialStatus = "All" }) {
           const lastName = nameParts.slice(1).join(" ") || "";
 
           return {
-            id: user._id,
+            id: user.id || user._id,
             name: user.name || "—",
             firstName,
             lastName,
+            company: user.company || "—",
             email: user.email || "—",
             phone: user.mobile || "—",
+            properties: Array.isArray(user.properties) ? user.properties.length : 0,
+            revenue: `\u20B9${user.wallet ?? 0}`,
             status: deriveStatus(user),
             joinedDate: user.createdAt
               ? new Date(user.createdAt).toISOString().slice(0, 10)
@@ -235,36 +191,32 @@ function Partners({ initialStatus = "All" }) {
     const normalized = query.toLowerCase();
 
     return partners.filter((partner) => {
-      const matchesSearch =
+      return (
         !normalized ||
         partner.name.toLowerCase().includes(normalized) ||
+        partner.company.toLowerCase().includes(normalized) ||
         partner.email.toLowerCase().includes(normalized) ||
-        partner.phone.toLowerCase().includes(normalized);
-
-      const matchesStatus =
-        statusFilter === "All" || partner.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+        partner.phone.toLowerCase().includes(normalized)
+      );
     });
-  }, [partners, query, statusFilter]);
+  }, [partners, query]);
 
-  // Approve partner API call
-  const handleApprove = async (partner) => {
+  const handleBlock = async (partner) => {
     if (!getToken()) {
       setError("No auth token found. Please login again.");
       return;
     }
 
-    const confirmApprove = window.confirm(
-      `Approve partner "${partner.name}"?`
+    const confirmBlock = window.confirm(
+      `Block partner "${partner.name}"? They will lose access.`
     );
-    if (!confirmApprove) return;
+    if (!confirmBlock) return;
 
     try {
       setError(null);
-      setApprovingId(partner.id);
+      setBusyId(partner.id);
 
-      const response = await fetch(APPROVE_URL, {
+      const response = await fetch(FILTER_URL, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -281,89 +233,46 @@ function Partners({ initialStatus = "All" }) {
         );
       }
 
-      // Optimistic update
-      setPartners((current) =>
-        current.map((item) =>
-          item.id === partner.id
-            ? {
-                ...item,
-                isApproved: true,
-                status: deriveStatus({ ...item.raw, isApproved: true, isBlocked: false, isRegistered: true }),
-                raw: { ...item.raw, isApproved: true },
-              }
-            : item
-        )
-      );
-
-      // Re-fetch to stay in sync
+      setPartners((current) => current.filter((item) => item.id !== partner.id));
       setRefreshKey((current) => current + 1);
     } catch (err) {
-      setError(err.message || "Unable to approve partner.");
+      setError(err.message || "Unable to block partner.");
     } finally {
-      setApprovingId(null);
-    }
-  };
-
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
-
-    const requiredFields = ["firstName", "lastName", "email", "phone", "company", "businessType"];
-    const isIncomplete = requiredFields.some((field) => !String(formData[field]).trim());
-
-    if (isIncomplete) {
-      setError("Please complete all required partner fields.");
-      return;
-    }
-
-    if (!getToken()) {
-      setError("No auth token found. Please login again.");
-      return;
-    }
-
-    try {
-      setError(null);
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        body: JSON.stringify({
-          name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
-          email: formData.email.trim(),
-          mobile: formData.phone.trim(),
-          company: formData.company.trim(),
-          businessType: formData.businessType.trim(),
-        }),
-      });
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result.success === false) {
-        throw new Error(result.message || `Request failed with status ${response.status}`);
-      }
-
-      setFormData({ firstName: "", lastName: "", email: "", phone: "", company: "", businessType: "" });
-      setShowModal(false);
-      setRefreshKey((current) => current + 1);
-    } catch (err) {
-      setError(err.message || "Unable to create partner.");
+      setBusyId(null);
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Partner Management"
-        description="Monitor and manage all partner onboarding, performance and approvals."
+        title="Active Partners"
+        description="List of all approved and currently active partners."
         actions={[
-          { label: "Add Partner", onClick: () => setShowModal(true), variant: "primary" },
-          { label: "Export", onClick: () => alert("Export is ready for download."), variant: "secondary" },
+          {
+            label: "Refresh",
+            onClick: () => setRefreshKey((c) => c + 1),
+            variant: "secondary",
+          },
         ]}
       />
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          { label: "Total Partners", value: partners.length },
-          { label: "Active", value: partners.filter((item) => item.status === "Active").length },
-          { label: "Pending", value: partners.filter((item) => item.status === "Pending").length },
-          { label: "Revenue", value: `\u20B9${partners.reduce((total, partner) => total + (Number(partner.raw?.wallet) || 0), 0).toLocaleString("en-IN")}` },
+          { label: "Total Active", value: partners.length },
+          {
+            label: "With Aadhaar",
+            value: partners.filter((p) => p.aadharImage).length,
+          },
+          {
+            label: "Registered",
+            value: partners.filter((p) => p.raw?.isRegistered).length,
+          },
+          {
+            label: "Wallet Total",
+            value: `\u20B9${partners
+              .reduce((t, p) => t + (Number(p.raw?.wallet) || 0), 0)
+              .toLocaleString("en-IN")}`,
+          },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -378,30 +287,13 @@ function Partners({ initialStatus = "All" }) {
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-5">
           <div className="w-full max-w-md">
             <SearchInput
               value={query}
               onChange={setQuery}
               placeholder="Search by name, email or phone"
             />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {statusOptions.map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setStatusFilter(status)}
-                className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
-                  statusFilter === status
-                    ? "bg-[#075d59] text-white"
-                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {status}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -425,6 +317,8 @@ function Partners({ initialStatus = "All" }) {
                 <th className="px-4 py-3 font-semibold">Partner Name</th>
                 <th className="px-4 py-3 font-semibold">Email</th>
                 <th className="px-4 py-3 font-semibold">Phone</th>
+                <th className="px-4 py-3 font-semibold">Aadhaar</th>
+                <th className="px-4 py-3 font-semibold">Wallet</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Joined Date</th>
                 <th className="px-4 py-3 font-semibold">Actions</th>
@@ -437,16 +331,39 @@ function Partners({ initialStatus = "All" }) {
                     key={partner.id}
                     className="border-b border-gray-100 hover:bg-gray-50/60"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-700">{partner.id}</td>
+                    <td className="px-4 py-3 font-medium text-gray-700">
+                      {partner.id}
+                    </td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-gray-800">{partner.name}</div>
+                      <div className="font-semibold text-gray-800">
+                        {partner.name}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{partner.email}</td>
                     <td className="px-4 py-3 text-gray-600">{partner.phone}</td>
                     <td className="px-4 py-3">
+                      {partner.aadharImage ? (
+                        <a
+                          href={partner.aadharImage}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-[#075d59] underline hover:text-[#064b48]"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {partner.revenue}
+                    </td>
+                    <td className="px-4 py-3">
                       <StatusBadge status={partner.status} />
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{partner.joinedDate}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {partner.joinedDate}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <Link
@@ -465,16 +382,14 @@ function Partners({ initialStatus = "All" }) {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleApprove(partner)}
-                          disabled={approvingId === partner.id || partner.isApproved}
-                          className={`rounded-lg p-2 ${
-                            partner.isApproved
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                          } ${approvingId === partner.id ? "opacity-60 cursor-wait" : ""}`}
-                          title={partner.isApproved ? "Already approved" : "Approve"}
+                          onClick={() => handleBlock(partner)}
+                          disabled={busyId === partner.id}
+                          className={`rounded-lg bg-red-50 p-2 text-red-700 hover:bg-red-100 ${
+                            busyId === partner.id ? "opacity-60 cursor-wait" : ""
+                          }`}
+                          title="Block"
                         >
-                          <UserCheck size={15} />
+                          <Ban size={15} />
                         </button>
                         <button
                           type="button"
@@ -493,102 +408,12 @@ function Partners({ initialStatus = "All" }) {
 
         {!loading && filteredPartners.length === 0 && (
           <div className="mt-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center text-sm text-gray-500">
-            No partners match the current search and filter criteria.
+            No active partners found.
           </div>
         )}
       </div>
-
-      <Modal
-        open={showModal}
-        onClose={() => setShowModal(false)}
-        title="Add Partner"
-        size="lg"
-      >
-        <form onSubmit={handleFormSubmit} className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2 text-sm text-gray-600">
-              <span>First Name</span>
-              <input
-                required
-                value={formData.firstName}
-                onChange={(e) =>
-                  setFormData({ ...formData, firstName: e.target.value })
-                }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#075d59]"
-              />
-            </label>
-            <label className="space-y-2 text-sm text-gray-600">
-              <span>Last Name</span>
-              <input
-                required
-                value={formData.lastName}
-                onChange={(e) =>
-                  setFormData({ ...formData, lastName: e.target.value })
-                }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#075d59]"
-              />
-            </label>
-            <label className="space-y-2 text-sm text-gray-600">
-              <span>Email</span>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#075d59]"
-              />
-            </label>
-            <label className="space-y-2 text-sm text-gray-600">
-              <span>Phone</span>
-              <input
-                required
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#075d59]"
-              />
-            </label>
-            <label className="space-y-2 text-sm text-gray-600 md:col-span-2">
-              <span>Company Name</span>
-              <input
-                required
-                value={formData.company}
-                onChange={(e) =>
-                  setFormData({ ...formData, company: e.target.value })
-                }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#075d59]"
-              />
-            </label>
-            <label className="space-y-2 text-sm text-gray-600 md:col-span-2">
-              <span>Business Type</span>
-              <input
-                required
-                value={formData.businessType}
-                onChange={(e) =>
-                  setFormData({ ...formData, businessType: e.target.value })
-                }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#075d59]"
-              />
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Save Partner</Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }
 
-export default Partners;
+export default ActivePartners;

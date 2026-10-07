@@ -1,6 +1,28 @@
 import { useParams } from "react-router-dom";
-import StatusBadge from "../../components/StatusBadge";
 import customersData from "../../data/customers";
+
+function StatusBadge({ status }) {
+  const styles = {
+    Active: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Pending: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    Suspended: "bg-red-50 text-red-700 border-red-100",
+    Rejected: "bg-gray-100 text-gray-700 border-gray-200",
+    Confirmed: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Completed: "bg-blue-50 text-blue-700 border-blue-100",
+    Cancelled: "bg-red-50 text-red-700 border-red-100",
+    Paid: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Failed: "bg-red-50 text-red-700 border-red-100",
+    Processing: "bg-orange-50 text-orange-700 border-orange-100",
+    Verified: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Unverified: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${styles[status] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
+      {status}
+    </span>
+  );
+}
 
 function CustomerDetails() {
   const { id } = useParams();
@@ -20,7 +42,6 @@ function CustomerDetails() {
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          ["Total Bookings", customer.bookings],
           ["Completed", "7"],
           ["Cancelled", "1"],
           ["Total Spent", customer.totalSpent],
@@ -32,21 +53,12 @@ function CustomerDetails() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6">
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-lg font-bold text-gray-800">Profile</h2>
           <ul className="space-y-2 text-sm text-gray-600">
             <li><span className="font-medium text-gray-700">Customer ID:</span> {customer.id}</li>
             <li><span className="font-medium text-gray-700">Joined:</span> {customer.joinedDate}</li>
-            <li><span className="font-medium text-gray-700">Last Booking:</span> {customer.lastBooking}</li>
-          </ul>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold text-gray-800">Booking History</h2>
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li>BK-5001 • Azure Peak Resort • ₹18,900</li>
-            <li>BK-5003 • Sunset Villa • ₹22,400</li>
-            <li>BK-5005 • Cedar Residences • ₹13,500</li>
           </ul>
         </div>
       </div>

@@ -1,24 +1,17 @@
+import { useEffect, useState } from "react";
 import {
   Users,
   Building2,
-  CalendarCheck,
   IndianRupee,
   Clock3,
   ArrowUpRight,
   MoreHorizontal,
   AlertCircle,
-  Eye,
 } from "lucide-react";
 
 import RevenueChart from "../components/charts/RevenueChart";
-import BookingChart from "../components/charts/BookingChart";
 import PartnerGrowthChart from "../components/charts/PartnerGrowthChart";
 import PropertyChart from "../components/charts/PropertyChart";
-
-import {
-  recentBookings,
-  pendingPartners,
-} from "../data/dashboardData";
 
 const stats = [
   {
@@ -49,15 +42,6 @@ const stats = [
     iconColor: "text-purple-600",
   },
   {
-    title: "Bookings",
-    value: "1,842",
-    change: "11.8%",
-    trend: "up",
-    icon: CalendarCheck,
-    iconBg: "bg-orange-50",
-    iconColor: "text-orange-600",
-  },
-  {
     title: "Revenue",
     value: "₹24.8L",
     change: "18.6%",
@@ -77,30 +61,61 @@ const stats = [
   },
 ];
 
-function StatusBadge({ status }) {
-  const styles = {
-    Confirmed:
-      "bg-emerald-50 text-emerald-700 border-emerald-100",
-    Completed:
-      "bg-blue-50 text-blue-700 border-blue-100",
-    Pending:
-      "bg-yellow-50 text-yellow-700 border-yellow-100",
-    Cancelled:
-      "bg-red-50 text-red-700 border-red-100",
-  };
-
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-        styles[status] || "bg-gray-50 text-gray-600"
-      }`}
-    >
-      {status}
-    </span>
-  );
-}
-
 function Dashboard() {
+  const [partnerDashboard, setPartnerDashboard] = useState({
+    total: 0,
+    active: 0,
+    pending: [],
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const token = sessionStorage.getItem("adminToken");
+
+    if (!token) return () => { isMounted = false; };
+
+    const authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+
+    fetch("http://31.97.228.17:4478/api/admin/users", {
+      headers: { Authorization: authorization },
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+        return response.json();
+      })
+      .then((result) => {
+        const users = Array.isArray(result?.data) ? result.data : [];
+        const pending = users.filter(
+          (user) => user.isRegistered && !user.isApproved && !user.isBlocked,
+        );
+
+        if (isMounted) {
+          setPartnerDashboard({
+            total: users.length,
+            active: users.filter((user) => user.isApproved && !user.isBlocked).length,
+            pending: pending.map((user) => ({
+              id: user._id,
+              name: user.name || "—",
+              email: user.email || "—",
+              properties: Array.isArray(user.properties) ? user.properties.length : 0,
+              documents: user.aadharImage ? "Complete" : "Pending",
+            })),
+          });
+        }
+      })
+      .catch((error) => console.error("Failed to load dashboard partners:", error));
+
+    return () => { isMounted = false; };
+  }, []);
+
+  const pendingPartners = partnerDashboard.pending;
+  const dynamicStats = stats.map((item) => {
+    if (item.title === "Total Partners") return { ...item, value: String(partnerDashboard.total) };
+    if (item.title === "Active Partners") return { ...item, value: String(partnerDashboard.active) };
+    if (item.title === "Pending Approvals") return { ...item, value: String(pendingPartners.length) };
+    return item;
+  });
+
   return (
     <div className="space-y-6">
 
@@ -123,7 +138,7 @@ function Dashboard() {
             </h1>
 
             <p className="mt-2 max-w-xl text-sm text-white/70">
-              Manage your partners, properties, bookings and
+              Manage your partners, properties and
               platform operations from one place.
             </p>
 
@@ -148,7 +163,7 @@ function Dashboard() {
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
-        {stats.map((item) => {
+        {dynamicStats.map((item) => {
 
           const Icon = item.icon;
 
@@ -221,66 +236,20 @@ function Dashboard() {
 
       </section>
 
-      {/* ================================= */}
-      {/* Revenue + Booking */}
-      {/* ================================= */}
-
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-
+      <section className="grid grid-cols-1 gap-6">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-
           <div className="mb-6 flex items-start justify-between">
-
             <div>
-              <h2 className="text-lg font-bold text-gray-800">
-                Revenue Overview
-              </h2>
-
-              <p className="mt-1 text-xs text-gray-400">
-                Monthly platform revenue
-              </p>
+              <h2 className="text-lg font-bold text-gray-800">Revenue Overview</h2>
+              <p className="mt-1 text-xs text-gray-400">Monthly platform revenue</p>
             </div>
-
             <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-50">
               <MoreHorizontal size={19} />
             </button>
-
           </div>
-
-          <div className="h-[280px]">
-            <RevenueChart />
-          </div>
-
+          <div className="h-[280px]"><RevenueChart /></div>
         </div>
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-
-          <div className="mb-6 flex items-start justify-between">
-
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">
-                Booking Trends
-              </h2>
-
-              <p className="mt-1 text-xs text-gray-400">
-                Booking performance by month
-              </p>
-            </div>
-
-            <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-50">
-              <MoreHorizontal size={19} />
-            </button>
-
-          </div>
-
-          <div className="h-[280px]">
-            <BookingChart />
-          </div>
-
-        </div>
-
       </section>
-
       {/* ================================= */}
       {/* Partner Growth + Property Types */}
       {/* ================================= */}
@@ -324,157 +293,6 @@ function Dashboard() {
           <div className="h-[280px]">
             <PropertyChart />
           </div>
-
-        </div>
-
-      </section>
-
-      {/* ================================= */}
-      {/* Recent Bookings */}
-      {/* ================================= */}
-
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
-
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">
-              Recent Bookings
-            </h2>
-
-            <p className="mt-1 text-xs text-gray-400">
-              Latest booking activity
-            </p>
-          </div>
-
-          <button className="text-sm font-semibold text-[#07877f] hover:text-[#075d59]">
-            View All
-          </button>
-
-        </div>
-
-        <div className="overflow-x-auto">
-
-          <table className="w-full min-w-[950px]">
-
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/70">
-
-                <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Booking
-                </th>
-
-                <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Customer
-                </th>
-
-                <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Property
-                </th>
-
-                <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Check-in
-                </th>
-
-                <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Amount
-                </th>
-
-                <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Payment
-                </th>
-
-                <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Status
-                </th>
-
-                <th className="px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Action
-                </th>
-
-              </tr>
-            </thead>
-
-            <tbody>
-
-              {recentBookings.map((booking) => (
-
-                <tr
-                  key={booking.id}
-                  className="border-b border-gray-100 transition hover:bg-gray-50/70"
-                >
-
-                  <td className="px-6 py-4">
-
-                    <span className="text-sm font-semibold text-[#075d59]">
-                      {booking.id}
-                    </span>
-
-                  </td>
-
-                  <td className="px-6 py-4">
-
-                    <p className="text-sm font-medium text-gray-700">
-                      {booking.customer}
-                    </p>
-
-                  </td>
-
-                  <td className="px-6 py-4">
-
-                    <p className="text-sm text-gray-600">
-                      {booking.property}
-                    </p>
-
-                    <p className="mt-0.5 text-[11px] text-gray-400">
-                      {booking.partner}
-                    </p>
-
-                  </td>
-
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {booking.checkIn}
-                  </td>
-
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-800">
-                    {booking.amount}
-                  </td>
-
-                  <td className="px-6 py-4">
-
-                    <span
-                      className={`text-xs font-medium ${
-                        booking.payment === "Paid"
-                          ? "text-emerald-600"
-                          : booking.payment === "Pending"
-                          ? "text-yellow-600"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {booking.payment}
-                    </span>
-
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <StatusBadge status={booking.status} />
-                  </td>
-
-                  <td className="px-6 py-4 text-right">
-
-                    <button className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-[#075d59]">
-                      <Eye size={17} />
-                    </button>
-
-                  </td>
-
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
 
         </div>
 

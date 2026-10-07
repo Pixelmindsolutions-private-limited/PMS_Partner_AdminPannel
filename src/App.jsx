@@ -6,11 +6,11 @@ import Partners from "./pages/Partners/Partners";
 import PartnerDetails from "./pages/Partners/PartnerDetails";
 import Properties from "./pages/Properties/Properties";
 import PropertyDetails from "./pages/Properties/PropertyDetails";
-import Bookings from "./pages/Bookings/Bookings";
-import BookingDetails from "./pages/Bookings/BookingDetails";
-import Payments from "./pages/Finance/Payments";
+import Banners from "./pages/Banners/Banners";
+
+import ProjectPayments from "./pages/Finance/ProjectPayments";
 import Earnings from "./pages/Finance/Earnings";
-import Payouts from "./pages/Finance/Payouts";
+import WalletMoney from "./pages/Finance/WalletMoney";
 import Transactions from "./pages/Finance/Transactions";
 import Customers from "./pages/Customers/Customers";
 import CustomerDetails from "./pages/Customers/CustomerDetails";
@@ -19,6 +19,10 @@ import Notifications from "./pages/Notifications/Notifications";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import PrivateRoute from "./pages/PrivateRoute";
+import PendingPartners from "./pages/Partners/PendingPartners";
+import ActivePartners from "./pages/Partners/ActivePartners";
+import SuspendedPartners from "./pages/Partners/SuspendedPartners";
+
 
 function App() {
   return (
@@ -30,25 +34,23 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="/partners" element={<Partners />} />
-          <Route path="/partners/pending" element={<Partners initialStatus="Pending" />} />
-          <Route path="/partners/active" element={<Partners initialStatus="Active" />} />
-          <Route path="/partners/suspended" element={<Partners initialStatus="Suspended" />} />
+          <Route path="/partners/pending" element={<PendingPartners />} />
+          <Route path="/partners/active" element={<ActivePartners />} />
+          <Route path="/partners/suspended" element={<SuspendedPartners />} />
           <Route path="/partners/:id" element={<PartnerDetails />} />
 
           <Route path="/properties" element={<Properties />} />
-          <Route path="/properties/approvals" element={<Properties initialStatus="Pending" />} />
+          <Route
+            path="/properties/approvals"
+            element={<Properties initialStatus="Pending" />}
+          />
           <Route path="/properties/:id" element={<PropertyDetails />} />
 
-          <Route path="/bookings" element={<Bookings />} />
-          <Route path="/bookings/pending" element={<Bookings initialStatus="Pending" />} />
-          <Route path="/bookings/confirmed" element={<Bookings initialStatus="Confirmed" />} />
-          <Route path="/bookings/completed" element={<Bookings initialStatus="Completed" />} />
-          <Route path="/bookings/cancelled" element={<Bookings initialStatus="Cancelled" />} />
-          <Route path="/bookings/:id" element={<BookingDetails />} />
+          <Route path="/Banners" element={<Banners />} />
 
-          <Route path="/payments" element={<Payments />} />
+          <Route path="/projectpayments" element={<ProjectPayments />} />
           <Route path="/earnings" element={<Earnings />} />
-          <Route path="/payouts" element={<Payouts />} />
+          <Route path="/wallet" element={<WalletMoney />} />
           <Route path="/transactions" element={<Transactions />} />
 
           <Route path="/customers" element={<Customers />} />
