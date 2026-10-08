@@ -4,8 +4,8 @@ import AdminLayout from "./components/layout/AdminLayout";
 import Dashboard from "./pages/Dashboard";
 import Partners from "./pages/Partners/Partners";
 import PartnerDetails from "./pages/Partners/PartnerDetails";
-import Properties from "./pages/Properties/Properties";
-import PropertyDetails from "./pages/Properties/PropertyDetails";
+import Properties from "./pages/Properties/Projects";
+import PropertyDetails from "./pages/Properties/ProjectDetails";
 import Banners from "./pages/Banners/Banners";
 
 import ProjectPayments from "./pages/Finance/ProjectPayments";
@@ -22,7 +22,12 @@ import PrivateRoute from "./pages/PrivateRoute";
 import PendingPartners from "./pages/Partners/PendingPartners";
 import ActivePartners from "./pages/Partners/ActivePartners";
 import SuspendedPartners from "./pages/Partners/SuspendedPartners";
-
+import Withdrawals from "./pages/Withdrawals";
+import WithdrawalDetails from "./pages/WithdrawalDetails";
+import Leads from "./pages/Leads";
+import LeadDetails from "./pages/LeadDetails";
+import Projects from "./pages/Properties/Projects";
+import ProjectDetails from "./pages/Properties/ProjectDetails";
 
 function App() {
   return (
@@ -38,7 +43,8 @@ function App() {
           <Route path="/partners/active" element={<ActivePartners />} />
           <Route path="/partners/suspended" element={<SuspendedPartners />} />
           <Route path="/partners/:id" element={<PartnerDetails />} />
-
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/:id" element={<ProjectDetails />} />
           <Route path="/properties" element={<Properties />} />
           <Route
             path="/properties/approvals"
@@ -47,11 +53,15 @@ function App() {
           <Route path="/properties/:id" element={<PropertyDetails />} />
 
           <Route path="/Banners" element={<Banners />} />
+          <Route path="/leads" element={<Leads />} />
+          <Route path="/leads/:id" element={<LeadDetails />} />
 
           <Route path="/projectpayments" element={<ProjectPayments />} />
           <Route path="/earnings" element={<Earnings />} />
           <Route path="/wallet" element={<WalletMoney />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/withdrawals" element={<Withdrawals />} />
+          <Route path="/withdrawals/:id" element={<WithdrawalDetails />} />
 
           <Route path="/customers" element={<Customers />} />
           <Route path="/customers/:id" element={<CustomerDetails />} />

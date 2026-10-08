@@ -17,7 +17,7 @@ import {
   Clock3,
   Ban,
   Hotel,
-  ClipboardCheck,
+
   CreditCard,
   HandCoins,
   ArrowDownToLine,
@@ -41,16 +41,18 @@ const menuItems = [
     ],
   },
   {
-    title: "Property Management",
+    title: "Project Management",
     icon: Building2,
     children: [
-      { title: "All Properties", icon: Hotel, path: "/properties" },
-      {
-        title: "Property Approvals",
-        icon: ClipboardCheck,
-        path: "/properties/approvals",
-      },
+      { title: "All Projects", icon: Hotel, path: "/projects" },
     ],
+  },
+  {
+    title: "Lead Management",
+    icon: CalendarCheck,
+    children: [
+      { title: "All Leads", icon: Receipt, path: "/leads" },
+    ],    
   },
   {
     title: "Banner Management",
@@ -65,6 +67,13 @@ const menuItems = [
       { title: "Partner Earnings", icon: HandCoins, path: "/earnings" },
       { title: "Wallet Money", icon: ArrowDownToLine, path: "/wallet" },
       { title: "Transactions", icon: Receipt, path: "/transactions" },
+    ],
+  },
+  {
+    title: "Withdrawals",
+    icon: HandCoins,
+    children: [
+      { title: "All Withdrawals", icon: ArrowDownToLine, path: "/withdrawals" },
     ],
   },
   { title: "Customers", icon: UserRound, path: "/customers" },
